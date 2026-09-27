@@ -1,5 +1,7 @@
 // Supabase JWT validation
-// Extracts and validates Bearer token from requests
+// Extracts and cryptographically verifies a Bearer token from requests.
+
+import { jwtVerify } from "jose";
 
 export interface JwtPayload {
   sub: string;
@@ -16,9 +18,16 @@ export interface ValidationResult {
   error?: string;
 }
 
-export function extractAndValidateToken(
-  authHeader: string | null
-): ValidationResult {
+/**
+ * Verifies the token's HS256 signature against the Supabase project JWT
+ * secret before trusting any claim. Structural-only checks (no signature
+ * verification) let a caller forge an arbitrary `sub` and impersonate any
+ * user, so `jwtSecret` is required, not optional.
+ */
+export async function extractAndValidateToken(
+  authHeader: string | null,
+  jwtSecret: string | undefined
+): Promise<ValidationResult> {
   if (!authHeader) {
     return {
       valid: false,
@@ -42,8 +51,6 @@ export function extractAndValidateToken(
     };
   }
 
-  // Basic JWT validation (checking structure)
-  // In production with Supabase, you would verify the signature
   const jwtParts = token.split(".");
   if (jwtParts.length !== 3) {
     return {
@@ -52,17 +59,16 @@ export function extractAndValidateToken(
     };
   }
 
-  try {
-    const payload = JSON.parse(atob(jwtParts[1])) as JwtPayload;
+  if (!jwtSecret) {
+    return {
+      valid: false,
+      error: "Server misconfigured: SUPABASE_JWT_SECRET not set",
+    };
+  }
 
-    // Check expiration
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp < now) {
-      return {
-        valid: false,
-        error: "Token has expired",
-      };
-    }
+  try {
+    const key = new TextEncoder().encode(jwtSecret);
+    const { payload } = await jwtVerify<JwtPayload>(token, key);
 
     if (!payload.sub) {
       return {
@@ -76,9 +82,16 @@ export function extractAndValidateToken(
       userId: payload.sub,
     };
   } catch (e) {
+    const message = e instanceof Error ? e.message : "";
+    if (message.toLowerCase().includes("exp")) {
+      return {
+        valid: false,
+        error: "Token has expired",
+      };
+    }
     return {
       valid: false,
-      error: "Invalid token payload",
+      error: "Invalid token signature or payload",
     };
   }
 }

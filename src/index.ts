@@ -12,6 +12,10 @@ interface Env {
   ZAI_API_KEY?: string;
   GEMINI_API_KEY?: string;
   SAFETY_RULESET_VERSION: string;
+  /** Supabase project JWT secret (HS256). Required to cryptographically
+   * verify the Authorization: Bearer token on every request; set via
+   * `wrangler secret put SUPABASE_JWT_SECRET`, never committed. */
+  SUPABASE_JWT_SECRET: string;
 }
 
 const ALLOWED_ORIGINS = ["http://localhost:3000", "https://health.bkknex.com"];
@@ -46,7 +50,7 @@ function successResponse(data: any, statusCode = 200): Response {
 
 async function handleChat(request: Request, env: Env): Promise<Response> {
   const authHeader = request.headers.get("Authorization");
-  const authResult = extractAndValidateToken(authHeader);
+  const authResult = await extractAndValidateToken(authHeader, env.SUPABASE_JWT_SECRET);
 
   if (!authResult.valid) {
     return errorResponse(authResult.error || "Auth failed", "auth_failed", 401);
@@ -132,7 +136,7 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
 
 async function handleInsight(request: Request, env: Env): Promise<Response> {
   const authHeader = request.headers.get("Authorization");
-  const authResult = extractAndValidateToken(authHeader);
+  const authResult = await extractAndValidateToken(authHeader, env.SUPABASE_JWT_SECRET);
 
   if (!authResult.valid) {
     return errorResponse(authResult.error || "Auth failed", "auth_failed", 401);
@@ -186,7 +190,7 @@ async function handleInsight(request: Request, env: Env): Promise<Response> {
 
 async function handleVoiceTranscribe(request: Request, env: Env): Promise<Response> {
   const authHeader = request.headers.get("Authorization");
-  const authResult = extractAndValidateToken(authHeader);
+  const authResult = await extractAndValidateToken(authHeader, env.SUPABASE_JWT_SECRET);
 
   if (!authResult.valid) {
     return errorResponse(authResult.error || "Auth failed", "auth_failed", 401);
@@ -213,7 +217,7 @@ async function handleVoiceTranscribe(request: Request, env: Env): Promise<Respon
 
 async function handleVoiceSynthesize(request: Request, env: Env): Promise<Response> {
   const authHeader = request.headers.get("Authorization");
-  const authResult = extractAndValidateToken(authHeader);
+  const authResult = await extractAndValidateToken(authHeader, env.SUPABASE_JWT_SECRET);
 
   if (!authResult.valid) {
     return errorResponse(authResult.error || "Auth failed", "auth_failed", 401);
