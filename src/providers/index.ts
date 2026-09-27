@@ -3,6 +3,7 @@ import { VoiceProvider } from "./VoiceProvider";
 import { OpenAiProvider } from "./openai/OpenAiProvider";
 import { ZaiProvider } from "./zai/ZaiProvider";
 import { GeminiProvider } from "./gemini/GeminiProvider";
+import { WorkersAiProvider } from "./workersAi/WorkersAiProvider";
 import { NullVoiceProvider } from "./NullVoiceProvider";
 
 export type { AiProvider, VoiceProvider };
@@ -12,17 +13,34 @@ export interface ProviderRegistry {
   getVoiceProvider(): VoiceProvider;
 }
 
-export class ProviderRegistryImpl implements ProviderRegistry {
-  private env: Record<string, string>;
+/** Bindings/vars the registry reads from. `AI` is the Workers AI binding
+ * (`[ai]` in wrangler.toml); everything else is a plain string var/secret. */
+export interface ProviderEnv {
+  [key: string]: string | Ai | undefined;
+  AI?: Ai;
+}
 
-  constructor(env: Record<string, string>) {
+export class ProviderRegistryImpl implements ProviderRegistry {
+  private env: ProviderEnv;
+
+  constructor(env: ProviderEnv) {
     this.env = env;
   }
 
   getAiProvider(): AiProvider {
-    const provider = this.env["AI_PROVIDER"] || "openai";
-    const apiKey = this.env[this.getApiKeyEnvName(provider)];
+    const provider = (this.env["AI_PROVIDER"] as string) || "workers-ai";
 
+    if (provider === "workers-ai") {
+      const ai = this.env["AI"];
+      if (!ai) {
+        throw new Error(
+          "Workers AI binding not found: add `[ai]\\nbinding = \"AI\"` to wrangler.toml"
+        );
+      }
+      return new WorkersAiProvider(ai);
+    }
+
+    const apiKey = this.env[this.getApiKeyEnvName(provider)] as string | undefined;
     if (!apiKey) {
       throw new Error(`API key not found for provider: ${provider}`);
     }
@@ -40,7 +58,7 @@ export class ProviderRegistryImpl implements ProviderRegistry {
   }
 
   getVoiceProvider(): VoiceProvider {
-    const provider = this.env["VOICE_PROVIDER"] || "null";
+    const provider = (this.env["VOICE_PROVIDER"] as string) || "null";
 
     if (provider === "null") {
       return new NullVoiceProvider();

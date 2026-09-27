@@ -13,16 +13,19 @@ name = "bkknex-health-worker"
 routes = []
 
 [[env.development.vars]]
-AI_PROVIDER = "openai"
+AI_PROVIDER = "workers-ai"
 VOICE_PROVIDER = "null"
 SAFETY_RULESET_VERSION = "1.0.0"
 LOG_SAFETY_METADATA = "true"
 
 [[env.production.vars]]
-AI_PROVIDER = "openai"
+AI_PROVIDER = "workers-ai"
 VOICE_PROVIDER = "null"
 SAFETY_RULESET_VERSION = "1.0.0"
 LOG_SAFETY_METADATA = "true"
+
+[ai]
+binding = "AI"
 
 [build]
 command = "npm run build"
@@ -35,8 +38,3 @@ main = "./dist/index.js"
 
 [env.development.build]
 command = "npm run build:dev"
-
-[[r2_buckets]]
-binding = "CONVERSATION_CACHE"
-bucket_name = "health-conversations"
-preview_bucket_name = "health-conversations-preview"

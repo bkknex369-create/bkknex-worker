@@ -8,7 +8,10 @@ import { ChatRequest, ChatResponse, InsightResponse, ApiError } from "./types";
 interface Env {
   AI_PROVIDER: string;
   VOICE_PROVIDER: string;
-  OPENAI_API_KEY: string;
+  /** Workers AI binding (`[ai]` in wrangler.toml). Backs the "workers-ai"
+   * provider, the default MVP path — no API key required. */
+  AI: Ai;
+  OPENAI_API_KEY?: string;
   ZAI_API_KEY?: string;
   GEMINI_API_KEY?: string;
   SAFETY_RULESET_VERSION: string;
