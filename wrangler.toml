@@ -3,6 +3,8 @@ type = "service"
 account_id = ""  # Set via env or wrangler login
 workers_dev = true
 route = ""  # Deployment route
+main = "dist/index.js"
+compatibility_date = "2026-09-27"
 
 [env.development]
 name = "bkknex-health-worker-dev"
@@ -30,11 +32,6 @@ binding = "AI"
 [build]
 command = "npm run build"
 cwd = "."
-main = "src/index.ts"
-
-[build.upload]
-format = "modules"
-main = "./dist/index.js"
 
 [env.development.build]
 command = "npm run build:dev"
